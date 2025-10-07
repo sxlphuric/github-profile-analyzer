@@ -1,37 +1,51 @@
-// standalone worker.js file
-
-addEventListener('fetch', event => {
+addEventListener("fetch", (event) => {
   event.respondWith(handleRequest(event.request));
 });
 
 const badgeAssets = {
-  "pull-shark": "https://github.githubassets.com/assets/pull-shark-default-498c279a747d.png",
-  "starstruck": "https://github.githubassets.com/assets/starstruck-default--light-medium-65b31ef2251e.png",
-  "pair-extraordinaire": "https://github.githubassets.com/assets/pair-extraordinaire-default-579438a20e01.png",
-  "galaxy-brain": "https://github.githubassets.com/assets/galaxy-brain-default-847262c21056.png",
-  "yolo": "https://github.githubassets.com/assets/yolo-default-be0bbff04951.png",
-  "quickdraw": "https://github.githubassets.com/assets/quickdraw-default--light-medium-5450fadcbe37.png",
-  "highlight": "https://github.githubassets.com/assets/highlight-default--light-medium-30e41ef7e6e7.png",
-  "community": "https://github.githubassets.com/assets/community-default-4c5bc57b9b55.png",
-  "deep-diver": "https://github.githubassets.com/assets/deep-diver-default--light-medium-a7be3c095c3d.png",
-  "arctic-code-vault-contributor": "https://github.githubassets.com/assets/arctic-code-vault-contributor-default-f5b6474c6028.png",
-  "public-sponsor": "https://github.githubassets.com/assets/public-sponsor-default-4e30fe60271d.png",
-  "heart-on-your-sleeve": "https://github.githubassets.com/assets/heart-on-your-sleeve-default-28aa2b2f7ffb.png",
-  "open-sourcerer": "https://github.githubassets.com/assets/open-sourcerer-default-64b1f529dcdb.png"
+  "pull-shark":
+    "https://github.githubassets.com/assets/pull-shark-default-498c279a747d.png",
+  starstruck:
+    "https://github.githubassets.com/assets/starstruck-default--light-medium-65b31ef2251e.png",
+  "pair-extraordinaire":
+    "https://github.githubassets.com/assets/pair-extraordinaire-default-579438a20e01.png",
+  "galaxy-brain":
+    "https://github.githubassets.com/assets/galaxy-brain-default-847262c21056.png",
+  yolo: "https://github.githubassets.com/assets/yolo-default-be0bbff04951.png",
+  quickdraw:
+    "https://github.githubassets.com/assets/quickdraw-default--light-medium-5450fadcbe37.png",
+  highlight:
+    "https://github.githubassets.com/assets/highlight-default--light-medium-30e41ef7e6e7.png",
+  community:
+    "https://github.githubassets.com/assets/community-default-4c5bc57b9b55.png",
+  "deep-diver":
+    "https://github.githubassets.com/assets/deep-diver-default--light-medium-a7be3c095c3d.png",
+  "arctic-code-vault-contributor":
+    "https://github.githubassets.com/assets/arctic-code-vault-contributor-default-f5b6474c6028.png",
+  "public-sponsor":
+    "https://github.githubassets.com/assets/public-sponsor-default-4e30fe60271d.png",
+  "heart-on-your-sleeve":
+    "https://github.githubassets.com/assets/heart-on-your-sleeve-default-28aa2b2f7ffb.png",
+  "open-sourcerer":
+    "https://github.githubassets.com/assets/open-sourcerer-default-64b1f529dcdb.png",
 };
-const githubTokens = ["api_keys"];
-const cerebrasKeys = ["api_keys"];
-const FRONTEND_ORIGIN = 'deployemnt_link';
+
+const githubTokens = [];
+const cerebrasKeys = [];
+
+const FRONTEND_ORIGIN = "";
 
 async function checkAchievementStatus(username, slug) {
-  const url = `https://github.com/${encodeURIComponent(username)}?tab=achievements&achievement=${slug}`;
+  const url = `https://github.com/${encodeURIComponent(
+    username
+  )}?tab=achievements&achievement=${slug}`;
   try {
     const res = await fetch(url, {
-      method: 'HEAD',
+      method: "HEAD",
       headers: {
-        'User-Agent': 'Cloudflare-Worker/1.0',
-        'Accept': '*/*'
-      }
+        "User-Agent": "Cloudflare-Worker/1.0",
+        Accept: "*/*",
+      },
     });
     return res.status === 200 ? slug : null;
   } catch {
@@ -42,21 +56,27 @@ async function checkAchievementStatus(username, slug) {
 async function handleRequest(request) {
   try {
     const url = new URL(request.url);
-    if (url.pathname === '/') {
+    if (url.pathname === "/") {
       return new Response(getFrontendHTML(), {
-        headers: { 'Content-Type': 'text/html' }
+        headers: { "Content-Type": "text/html" },
       });
     }
-    if (url.pathname === '/rate_limit') {
-      let total = 0, used = 0, remaining = 0;
+
+    if (url.pathname === "/rate_limit") {
+      let total = 0,
+        used = 0,
+        remaining = 0;
       const rateLimitUrl = "https://api.github.com/rate_limit";
       for (const token of githubTokens) {
         const headers = {
-          "Authorization": `token ${token}`,
+          Authorization: `token ${token}`,
           "User-Agent": "Cloudflare-Worker",
-          "Accept": "application/vnd.github.v3+json"
+          Accept: "application/vnd.github.v3+json",
         };
-        const resp = await fetch(rateLimitUrl, { headers, cf: { timeout: 60000 } });
+        const resp = await fetch(rateLimitUrl, {
+          headers,
+          cf: { timeout: 60000 },
+        });
         if (!resp.ok) continue;
         const data = await resp.json();
         const r = data.rate;
@@ -64,30 +84,43 @@ async function handleRequest(request) {
         used += r.used;
         remaining += r.remaining;
       }
-      return new Response(JSON.stringify({ rate: { "limit": total, "used": used, "remaining": remaining } }), {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({
+          rate: { limit: total, used: used, remaining: remaining },
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
-    if (url.pathname === '/contributions') {
-      const origin = request.headers.get('Origin') || request.headers.get('Referer') || '';
+    if (url.pathname === "/contributions") {
+      const origin =
+        request.headers.get("Origin") || request.headers.get("Referer") || "";
       if (!origin.startsWith(FRONTEND_ORIGIN)) {
-        return new Response(JSON.stringify({ error: "Cross-origin requests are not allowed" }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return new Response(
+          JSON.stringify({ error: "Cross-origin requests are not allowed" }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
       }
-      const username = url.searchParams.get('username');
+      const username = url.searchParams.get("username");
       if (!username) {
-        return new Response(JSON.stringify({ error: 'Username parameter is required' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({ error: "Username parameter is required" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
       }
       const cacheKey = new Request(request.url, request);
       const cache = caches.default;
       const cached = await cache.match(cacheKey);
       if (cached) return cached;
+
       const idx = Math.floor(Math.random() * githubTokens.length);
       const token = githubTokens[idx];
       const query = `
@@ -106,70 +139,94 @@ async function handleRequest(request) {
           }
         }
       `;
-      const graphResp = await fetch('https://api.github.com/graphql', {
-        method: 'POST',
+      const graphResp = await fetch("https://api.github.com/graphql", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'Cloudflare-Worker',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "User-Agent": "Cloudflare-Worker",
         },
         body: JSON.stringify({ query }),
       });
       if (!graphResp.ok) {
         const errorText = await graphResp.text();
-        return new Response(JSON.stringify({ error: `GitHub API error: ${graphResp.status} - ${errorText}` }), {
-          status: graphResp.status,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            error: `GitHub API error: ${graphResp.status} - ${errorText}`,
+          }),
+          {
+            status: graphResp.status,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
       }
       const result = await graphResp.json();
-      const weeks = result.data.user.contributionsCollection.contributionCalendar.weeks || [];
-      const cellSize = 10, cellMargin = 2, daysCount = 7;
+      const weeks =
+        result.data.user.contributionsCollection.contributionCalendar.weeks ||
+        [];
+      const cellSize = 10,
+        cellMargin = 2,
+        daysCount = 7;
       const width = weeks.length * (cellSize + cellMargin) + cellMargin;
       const height = daysCount * (cellSize + cellMargin) + cellMargin;
       let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
       svg += '<rect width="100%" height="100%" fill="#1a1a1a"/>';
-      const maxContrib = Math.max(1, ...weeks.flatMap(w => w.contributionDays.map(d => d.contributionCount)));
+      const maxContrib = Math.max(
+        1,
+        ...weeks.flatMap((w) =>
+          w.contributionDays.map((d) => d.contributionCount)
+        )
+      );
       weeks.forEach((week, wi) => {
         week.contributionDays.forEach((day, di) => {
           const x = wi * (cellSize + cellMargin);
           const y = di * (cellSize + cellMargin);
           const intensity = Math.min(day.contributionCount / maxContrib, 1);
-          const fill = day.contributionCount === 0 ? '#2f3727' : `rgba(0,255,0,${0.2 + intensity * 0.8})`;
+          const fill =
+            day.contributionCount === 0
+              ? "#2f3727"
+              : `rgba(0,255,0,${0.2 + intensity * 0.8})`;
           svg += `<rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" fill="${fill}"/>`;
         });
       });
-      svg += '</svg>';
+      svg += "</svg>";
       const responseSvg = new Response(svg, {
         headers: {
-          'Content-Type': 'image/svg+xml',
-          'Cache-Control': 'public, max-age=3600',
+          "Content-Type": "image/svg+xml",
+          "Cache-Control": "public, max-age=3600",
         },
       });
       await cache.put(cacheKey, responseSvg.clone());
       return responseSvg;
     }
-    if (url.pathname !== '/api') {
+    if (url.pathname !== "/api") {
       return new Response(JSON.stringify({ error: "Invalid path" }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" },
       });
     }
 
-    const origin = request.headers.get('Origin') || request.headers.get('Referer') || '';
+    const origin =
+      request.headers.get("Origin") || request.headers.get("Referer") || "";
     if (!origin.startsWith(FRONTEND_ORIGIN)) {
-      return new Response(JSON.stringify({ error: "Cross-origin requests are not allowed" }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Cross-origin requests are not allowed" }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
-    const username = url.searchParams.get('username');
+    const username = url.searchParams.get("username");
     if (!username) {
-      return new Response(JSON.stringify({ error: "Username parameter is required" }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Username parameter is required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
     const index = Math.floor(Math.random() * githubTokens.length);
@@ -178,79 +235,129 @@ async function handleRequest(request) {
     const cerebrasKey = cerebrasKeys[cerebrasIndex];
 
     const headers = {
-      "Authorization": `token ${token}`,
+      Authorization: `token ${token}`,
       "User-Agent": "Cloudflare-Worker",
-      "Accept": "application/vnd.github.v3+json"
+      Accept: "application/vnd.github.v3+json",
     };
 
     const rateLimitUrl = "https://api.github.com/rate_limit";
-    const rateLimitResp = await fetch(rateLimitUrl, { headers, cf: { timeout: 60000 } });
+    const rateLimitResp = await fetch(rateLimitUrl, {
+      headers,
+      cf: { timeout: 60000 },
+    });
     if (!rateLimitResp.ok) {
-      return new Response(JSON.stringify({ error: "Failed to check rate limit" }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Failed to check rate limit" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
     const rateLimitData = await rateLimitResp.json();
     if (rateLimitData.rate.remaining === 0) {
-      return new Response(JSON.stringify({ error: "GitHub API rate limit exceeded" }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "GitHub API rate limit exceeded" }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
-    const starredUrl = `https://api.github.com/users/${username}/starred?per_page=1000&page=1`;
-    const starredResp = await fetch(starredUrl, { headers, cf: { timeout: 60000 } });
-    if (!starredResp.ok) {
-      return new Response(JSON.stringify({ error: "Failed to fetch starred repositories" }), {
-        status: starredResp.status,
-        headers: { 'Content-Type': 'application/json' }
+    const starCheckQuery = `
+      {
+        user(login: "${username}") {
+          repository(name: "github-profile-analyzer") {
+            viewerHasStarred
+          }
+        }
+      }
+    `;
+
+    const starCheckUrl = `https://api.github.com/repos/0xarchit/github-profile-analyzer/stargazers?per_page=100`;
+    let hasStarred = false;
+
+    for (let page = 1; page <= 5; page++) {
+      const starredResp = await fetch(`${starCheckUrl}&page=${page}`, {
+        headers,
+        cf: { timeout: 30000 },
       });
+      if (!starredResp.ok) break;
+
+      const stargazers = await starredResp.json();
+      if (stargazers.length === 0) break;
+
+      hasStarred = stargazers.some((user) => user.login === username);
+      if (hasStarred) break;
     }
-    const starredData = await starredResp.json();
-    const hasStarred = starredData.some(repo => repo.full_name === "0xarchit/github-profile-analyzer");
+
     if (!hasStarred) {
-      return new Response(JSON.stringify({ error: "You have not starred the 0xarchit/github-profile-analyzer repository", showPopup: true }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({
+          error:
+            "You have not starred the 0xarchit/github-profile-analyzer repository",
+          showPopup: true,
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
     async function userHasCommits(repoName) {
-      const commitsUrl = `https://api.github.com/repos/${username}/${repoName}/commits?per_page=100`;
-      const commitsResp = await fetch(commitsUrl, { headers, cf: { timeout: 60000 } });
+      const commitsUrl = `https://api.github.com/repos/${username}/${repoName}/commits?author=${username}&per_page=1`;
+      const commitsResp = await fetch(commitsUrl, {
+        headers,
+        cf: { timeout: 15000 },
+      });
       if (!commitsResp.ok) return false;
       const commitsData = await commitsResp.json();
-      for (const commit of commitsData) {
-        const author = commit.author || {};
-        if (author.login === username) return true;
-      }
-      return false;
+      return commitsData.length > 0;
     }
 
-    const userUrl = `https://api.github.com/users/${username}`;
-    const userResp = await fetch(userUrl, { headers, cf: { timeout: 60000 } });
+    const [userResp, reposResp] = await Promise.all([
+      fetch(`https://api.github.com/users/${username}`, {
+        headers,
+        cf: { timeout: 30000 },
+      }),
+      fetch(
+        `https://api.github.com/users/${username}/repos?per_page=100&page=1&sort=updated`,
+        {
+          headers,
+          cf: { timeout: 30000 },
+        }
+      ),
+    ]);
+
     if (!userResp.ok) {
-      return new Response(JSON.stringify({ error: "Failed to fetch user data" }), {
-        status: userResp.status,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch user data" }),
+        {
+          status: userResp.status,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
-    const userData = await userResp.json();
 
-    const reposUrl = `https://api.github.com/users/${username}/repos?per_page=100&page=1`;
-    const reposResp = await fetch(reposUrl, { headers, cf: { timeout: 60000 } });
     if (!reposResp.ok) {
-      return new Response(JSON.stringify({ error: "Failed to fetch repositories" }), {
-        status: reposResp.status,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch repositories" }),
+        {
+          status: reposResp.status,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
+
+    const userData = await userResp.json();
     const reposData = await reposResp.json();
 
     const originalRepos = {};
     const authoredForks = {};
 
+    const forks = [];
     for (const repo of reposData) {
       const repoName = repo.name;
       const isFork = repo.fork || false;
@@ -269,15 +376,35 @@ async function handleRequest(request) {
         has_downloads: repo.has_downloads || false,
         has_discussions: repo.has_discussions || false,
         license: repo.license || {},
-        topics: repo.topics || []
+        topics: repo.topics || [],
       };
 
       if (!isFork) {
         originalRepos[repoName] = repoFields;
-      } else if (isFork && await userHasCommits(repoName)) {
-        authoredForks[repoName] = repoFields;
+      } else {
+        forks.push({ name: repoName, fields: repoFields });
       }
     }
+
+    const BATCH_SIZE = 15;
+    const contributedForks = [];
+
+    for (let i = 0; i < forks.length; i += BATCH_SIZE) {
+      const batch = forks.slice(i, i + BATCH_SIZE);
+      const batchChecks = batch.map(async (fork) => {
+        const hasContributed = await userHasCommits(fork.name);
+        return hasContributed ? { name: fork.name, fields: fork.fields } : null;
+      });
+
+      const batchResults = (await Promise.all(batchChecks)).filter(
+        (f) => f !== null
+      );
+      contributedForks.push(...batchResults);
+    }
+
+    contributedForks.forEach((fork) => {
+      authoredForks[fork.name] = fork.fields;
+    });
 
     const profileSummary = {
       avatar: userData.avatar_url || null,
@@ -293,29 +420,33 @@ async function handleRequest(request) {
       following: userData.following || 0,
       public_repo_count: userData.public_repos || 0,
       original_repos: originalRepos,
-      authored_forks: authoredForks
+      authored_forks: authoredForks,
     };
 
     const slugs = Object.keys(badgeAssets);
-    const unlockedBadges = await Promise.all(slugs.map(slug => checkAchievementStatus(username, slug)));
+    const unlockedBadges = await Promise.all(
+      slugs.map((slug) => checkAchievementStatus(username, slug))
+    );
     const badges = {};
-    unlockedBadges.filter(Boolean).forEach(slug => {
+    unlockedBadges.filter(Boolean).forEach((slug) => {
       badges[slug] = badgeAssets[slug];
     });
     profileSummary.badges = badges;
 
-    const cerebrasResponse = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${cerebrasKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'llama-4-scout-17b-16e-instruct',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a JSON generator that strictly evaluates a user's public GitHub profile data and returns a detailed analysis report in the following structure:
+    const cerebrasResponse = await fetch(
+      "https://api.cerebras.ai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${cerebrasKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-4-scout-17b-16e-instruct",
+          messages: [
+            {
+              role: "system",
+              content: `You are a JSON generator that strictly evaluates a user's public GitHub profile data and returns a detailed analysis report in the following structure:
 
 {
   "score": <integer between 0 and 100 representing overall GitHub profile strength>,
@@ -349,35 +480,43 @@ Requirements:
 - Use logical thresholds and weighted scoring to determine each subcomponent.
 - Keep tone constructive, data-driven, and user-friendly.
 - Avoid repetition or overly generic feedback.
-- Return valid JSON output, all fields populated unless no data is available.`
-          },
-          {
-            role: 'user',
-            content: JSON.stringify(profileSummary)
-          }
-        ],
-        response_format: { type: 'json_object' }
-      })
-    });
+- Return valid JSON output, all fields populated unless no data is available.`,
+            },
+            {
+              role: "user",
+              content: JSON.stringify(profileSummary),
+            },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      }
+    );
 
     if (!cerebrasResponse.ok) {
-      return new Response(JSON.stringify({ error: "Failed to fetch AI analysis" }), {
-        status: cerebrasResponse.status,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch AI analysis" }),
+        {
+          status: cerebrasResponse.status,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
     const cerebrasData = await cerebrasResponse.json();
     const aiAnalysis = JSON.parse(cerebrasData.choices[0].message.content);
+
     const responseData = Object.assign({}, profileSummary, aiAnalysis);
     return new Response(JSON.stringify(responseData), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: `Worker error: ${error.message}` }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return new Response(
+      JSON.stringify({ error: `Worker error: ${error.message}` }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
 
@@ -400,6 +539,7 @@ function getFrontendHTML() {
   <meta name="author" content="0xArchit">
   <title>GitHub Profile Analyzer</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * {
       user-drag: none;
@@ -409,60 +549,156 @@ function getFrontendHTML() {
       -webkit-user-select: none;
       -ms-user-select: none;
     }
+    
     :root {
       --progress-bar-width: 180px;
       --progress-bar-height: 180px;
       --font-size: 1.5rem;
+      
+      /* Light theme colors */
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-tertiary: #64748b;
+      --border-color: #e2e8f0;
+      --accent-primary: #3b82f6;
+      --accent-secondary: #8b5cf6;
+      --accent-hover: #2563eb;
+      --glass-bg: rgba(255, 255, 255, 0.7);
+      --glass-border: rgba(226, 232, 240, 0.8);
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+      --gradient-start: #3b82f6;
+      --gradient-end: #8b5cf6;
     }
+    
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-tertiary: #94a3b8;
+      --border-color: #334155;
+      --accent-primary: #60a5fa;
+      --accent-secondary: #a78bfa;
+      --accent-hover: #3b82f6;
+      --glass-bg: rgba(30, 41, 59, 0.7);
+      --glass-border: rgba(51, 65, 85, 0.8);
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+    
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background 0.3s ease, color 0.3s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
     .glassmorphism {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s ease;
     }
+    
+    .glassmorphism:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+    
+    .card {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    
     @keyframes slideIn {
       from { transform: translateY(20px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
-    .animate-slideIn {
-      animation: slideIn 0.5s ease-out forwards;
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
+    
+    @keyframes scaleIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    
+    .animate-slideIn {
+      animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
+    .animate-fadeIn {
+      animation: fadeIn 0.5s ease forwards;
+    }
+    
+    .animate-scaleIn {
+      animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
     .popup {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       z-index: 1000;
-      padding: 20px;
-      width: 300px;
+      padding: 32px;
+      max-width: 90%;
+      width: 400px;
       text-align: center;
+      box-shadow: var(--shadow-lg);
+      animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
+    
     .popup-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
       z-index: 999;
+      animation: fadeIn 0.3s ease;
     }
+    
     .loader {
-      border: 4px solid rgba(255, 255, 255, 0.2);
-      border-top: 4px solid #3b82f6;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
+      border: 4px solid var(--border-color);
+      border-top: 4px solid var(--accent-primary);
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 0.8s linear infinite;
       margin: 0 auto;
     }
+    
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    
     .circular-progress {
       width: var(--progress-bar-width);
       height: var(--progress-bar-height);
@@ -470,34 +706,265 @@ function getFrontendHTML() {
       display: flex;
       justify-content: center;
       align-items: center;
+      position: relative;
     }
+    
     .inner-circle {
       position: absolute;
-      width: calc(var(--progress-bar-width) - 30px);
-      height: calc(var(--progress-bar-height) - 30px);
+      width: calc(var(--progress-bar-width) - 40px);
+      height: calc(var(--progress-bar-height) - 40px);
       border-radius: 50%;
-      background-color: rgba(0, 0, 0, 0.8);
+      background: var(--bg-secondary);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
     }
+    
     .percentage {
       position: relative;
       font-size: var(--font-size);
-      color: rgba(255, 255, 255, 0.9);
-      font-weight: bold;
+      color: var(--text-primary);
+      font-weight: 700;
+      z-index: 1;
     }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      color: white;
+      font-weight: 600;
+      padding: 14px 28px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-secondary:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--accent-primary);
+    }
+    
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 50px;
+      padding: 8px 16px;
+      cursor: pointer;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s ease;
+    }
+    
+    .theme-toggle:hover {
+      box-shadow: var(--shadow-lg);
+      transform: scale(1.05);
+    }
+    
+    .theme-toggle i {
+      font-size: 18px;
+      color: var(--text-primary);
+    }
+    
+    input[type="text"] {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+    
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .badge-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    
+    .badge-item {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid var(--border-color);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .badge-item:hover {
+      transform: scale(1.2);
+      border-color: var(--accent-primary);
+    }
+    
+    .stat-card {
+      text-align: center;
+      padding: 16px;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent-primary);
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+    
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .section-title i {
+      color: var(--accent-primary);
+    }
+    
+    .tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      color: white;
+      padding: 12px 20px;
+      border-radius: 50px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .project-card {
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+    
+    .project-card:hover {
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    
+    .tech-tag {
+      background: var(--bg-secondary);
+      color: var(--accent-primary);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+    }
+    
+    .rate-limit-widget {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      color: var(--text-primary);
+      padding: 16px;
+      border-radius: 12px;
+      cursor: move;
+      z-index: 100;
+      font-size: 14px;
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-md);
+      user-select: none;
+    }
+    
+    .rate-limit-widget strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent-primary);
+    }
+    
     @media screen and (max-width: 800px) {
       :root {
         --progress-bar-width: 150px;
         --progress-bar-height: 150px;
         --font-size: 1.3rem;
       }
-    }
-    @media screen and (max-width: 500px) {
-      :root {
-        --progress-bar-width: 120px;
-        --progress-bar-height: 120px;
-        --font-size: 1rem;
+      
+      .theme-toggle {
+        top: 10px;
+        right: 10px;
+        padding: 6px 12px;
+      }
+      
+      .rate-limit-widget {
+        font-size: 12px;
+        padding: 12px;
       }
     }
+    
+    @media screen and (max-width: 500px) {
+      :root {
+        --progress-bar-width: 130px;
+        --progress-bar-height: 130px;
+        --font-size: 1.1rem;
+      }
+      
+      .popup {
+        width: 90%;
+        padding: 24px;
+      }
+      
+      .section-title {
+        font-size: 18px;
+      }
+    }
+    
     @media print {
       @page {
         margin: 0 !important;
@@ -507,7 +974,8 @@ function getFrontendHTML() {
         padding: 0 !important;
         width: 100% !important;
       }
-      #rate-limit-widget,
+      .rate-limit-widget,
+      .theme-toggle,
       footer,
       #copy-url,
       #download-report,
@@ -527,116 +995,322 @@ function getFrontendHTML() {
         display: none !important;
       }
     }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-tertiary);
+      border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent-primary);
+      border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-hover);
+    }
+    
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    /* Shimmer loading effect */
+    @keyframes shimmer {
+      0% {
+        background-position: -1000px 0;
+      }
+      100% {
+        background-position: 1000px 0;
+      }
+    }
+    
+    .shimmer {
+      background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-tertiary) 50%, var(--bg-secondary) 100%);
+      background-size: 1000px 100%;
+      animation: shimmer 2s infinite;
+    }
   </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4 pb-16">  
+<body class="min-h-screen flex flex-col items-center p-4 pb-20">
+  
+  <!-- Theme Toggle -->
+  <div class="theme-toggle" id="theme-toggle">
+    <i class="fas fa-sun" id="theme-icon"></i>
+  </div>
+  
   <!-- Rate Limit Widget -->
-  <div id="rate-limit-widget" style="user-select:none; position:fixed; top:10px; left:10px; background:rgba(0,0,0,0.7); color:#fff; padding:10px; border-radius:5px; cursor:move; z-index:1001; font-size:0.9rem;">
-    <strong>Rate Limit Per Hour</strong>
+  <div class="rate-limit-widget" id="rate-limit-widget">
+    <strong><i class="fas fa-chart-line"></i> API Rate Limit</strong>
     <div>Total: <span id="rl-total">--</span></div>
     <div>Used: <span id="rl-used">--</span></div>
     <div>Remaining: <span id="rl-remaining">--</span></div>
   </div>
-  <div class="w-full max-w-2xl">
-    <h1 class="text-3xl font-bold mb-6 text-center animate-slideIn">GitHub Profile Analyzer</h1>
-    <h4 class="text-base font-bold mb-6 text-center animate-slideIn">
-  This Analysis is based on your first 100 repos including your original repos and only those forks in which you have contributed
-</h4>
-    <div id="username-box" class="mb-6 glassmorphism p-4 animate-slideIn">
-      <input id="username" type="text" placeholder="Enter GitHub username" class="w-full p-2 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none focus:border-blue-500 mb-2">
-  <button id="analyze" class="w-full text-white font-bold py-2 px-4 rounded" style="background-color:#0455C9;" onmouseover="this.style.backgroundColor='#03408F'" onmouseout="this.style.backgroundColor='#0455C9'">Analyze Profile</button>
+  
+  <div class="w-full max-w-7xl mt-8">
+    <!-- Hero Section -->
+    <div class="text-center mb-12 animate-slideIn">
+      <h1 class="text-5xl font-bold mb-4 gradient-text">
+        <i class="fab fa-github"></i> GitHub Profile Analyzer
+      </h1>
+      <p class="text-lg" style="color: var(--text-secondary);">
+        Analyze your GitHub profile with AI-powered insights
+      </p>
     </div>
-    <div id="loading" class="hidden glassmorphism p-4 mb-4">
+    
+    <h4 class="text-sm font-medium mb-8 text-center animate-slideIn" style="color: var(--text-tertiary); animation-delay: 0.1s;">
+      Analysis based on your first 100 repos including original repos and contributed forks
+    </h4>
+    
+    <!-- Search Box -->
+    <div id="username-box" class="mb-8 glassmorphism p-6 max-w-2xl mx-auto animate-slideIn" style="animation-delay: 0.2s;">
+      <div class="flex flex-col sm:flex-row gap-4">
+        <input 
+          id="username" 
+          type="text" 
+          placeholder="Enter GitHub username" 
+          class="flex-1"
+        >
+        <button id="analyze" class="btn-primary whitespace-nowrap">
+          <i class="fas fa-search"></i> Analyze Profile
+        </button>
+      </div>
+    </div>
+    
+    <!-- Loading State -->
+    <div id="loading" class="hidden glassmorphism p-8 mb-8 max-w-md mx-auto text-center">
       <div class="loader"></div>
-      <p class="text-center mt-2">Analyzing...</p>
+      <p class="mt-4 font-semibold" style="color: var(--text-primary);" id="loading-status">Analyzing your profile...</p>
+      <p class="text-sm mt-2" style="color: var(--text-tertiary);" id="loading-substatus">This may take a few moments</p>
+      <div class="mt-4 w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700" style="background: var(--bg-tertiary);">
+        <div id="loading-progress" class="h-2 rounded-full transition-all duration-500" style="width: 0%; background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));"></div>
+      </div>
     </div>
-    <div id="result" class="mt-6 hidden">
-      <div class="flex flex-wrap justify-center items-start gap-6 mb-4">
-        <div id="profile-card" class="glassmorphism p-4 w-full sm:w-1/2 md:w-1/2" style="display:none; position:relative;">
-        <div id="profile-contrib" style="position:absolute; top:0; left:0; width:100%; height:60px; background-size:contain; background-position:center; background-repeat:no-repeat; border-radius:10px 10px 0 0;"></div>
-          <img id="profile-avatar" src="" alt="avatar" class="w-16 h-16 rounded-full border-2 border-blue-500" style="position:relative; z-index:1; margin-top:20px;" />
-          <div class="flex-1">
-            <div class="flex flex-wrap items-center gap-2 mb-1">
-              <span class="font-bold text-lg" id="profile-username"></span>
+    
+    <!-- Results Section -->
+    <div id="result" class="mt-8 hidden">
+      
+      <!-- Profile & Score Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        
+        <!-- Profile Card -->
+        <div id="profile-card" class="lg:col-span-2 card p-6 hidden animate-scaleIn" style="position: relative; overflow: hidden;">
+          <!-- Contribution Background -->
+          <div id="profile-contrib" style="position: absolute; top: 0; left: 0; width: 100%; height: 80px; background-size: cover; background-position: center; opacity: 0.3; border-radius: 16px 16px 0 0;"></div>
+          
+          <div class="relative z-10 flex flex-col sm:flex-row gap-6">
+            <img id="profile-avatar" src="" alt="avatar" class="w-24 h-24 rounded-full border-4 shadow-lg" style="border-color: var(--accent-primary);" />
+            
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-3 mb-2">
+                <span class="text-2xl font-bold" id="profile-username"></span>
+                <div id="profile-badges" class="badge-container"></div>
+              </div>
+              
+              <div class="text-lg mb-2" style="color: var(--text-secondary);" id="profile-name"></div>
+              <div class="text-sm mb-4" style="color: var(--text-tertiary);" id="profile-bio"></div>
+              
+              <div class="flex flex-wrap gap-4 text-sm" style="color: var(--text-tertiary);">
+                <span id="profile-email"></span>
+                <span id="profile-company"></span>
+              </div>
+              
+              <!-- Stats Grid -->
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mt-6">
+                <div class="stat-card">
+                  <div class="stat-value" id="profile-followers">0</div>
+                  <div class="stat-label">Followers</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="profile-following">0</div>
+                  <div class="stat-label">Following</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="profile-repos">0</div>
+                  <div class="stat-label">Public Repos</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="profile-original-repos">0</div>
+                  <div class="stat-label">Original</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="profile-authored-forks">0</div>
+                  <div class="stat-label">Contributed</div>
+                </div>
+              </div>
             </div>
-            <div class="text-sm text-gray-300" id="profile-name"></div>
-            <div class="text-sm text-gray-400" id="profile-bio"></div>
-            <div class="flex flex-wrap gap-4 mt-2 text-xs text-gray-400">
-              <span id="profile-email"></span>
-              <span id="profile-company"></span>
-            </div>
-            <div class="flex flex-wrap gap-4 mt-2 text-xs text-gray-400">
-              <span>Followers: <span id="profile-followers"></span></span>
-              <span>Following: <span id="profile-following"></span></span>
-              <span>Public Repos: <span id="profile-repos"></span></span>
-              <span>Original Repos: <span id="profile-original-repos"></span></span>
-              <span>Authored Forks: <span id="profile-authored-forks"></span></span>
-            </div>
-            <div class="flex flex-wrap gap-2 mt-2" id="profile-badges"></div>
           </div>
         </div>
-        <div id="score-wrapper" class="glassmorphism p-4 flex justify-center items-center w-full sm:w-1/2 md:w-1/3">
-          <div class="circular-progress content-center" id="score-progress" data-inner-circle-color="rgba(0, 0, 0, 0.8)" data-percentage="0" data-progress-color="#0455C9" data-bg-color="rgba(255, 255, 255, 0.2)">
+        
+        <!-- Score Card -->
+        <div id="score-wrapper" class="card p-6 flex flex-col justify-center items-center animate-scaleIn" style="animation-delay: 0.1s;">
+          <div class="section-title mb-4">
+            <i class="fas fa-trophy"></i>
+            <span>Profile Score</span>
+          </div>
+          <div class="circular-progress" id="score-progress" data-inner-circle-color="rgba(0, 0, 0, 0.8)" data-percentage="0" data-progress-color="#3b82f6" data-bg-color="rgba(203, 213, 225, 0.3)">
             <div class="inner-circle"></div>
             <p class="percentage" id="score-text">0/100</p>
           </div>
         </div>
       </div>
-      <div class="flex justify-end mb-4">
-        <button id="copy-url" class="hidden glassmorphism px-4 py-2 text-white font-bold rounded">Copy Page URL</button>
-        <button id="download-report" class="hidden glassmorphism px-4 py-2 text-white font-bold rounded ml-2">Save Report</button>
+      
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap justify-end gap-3 mb-6">
+        <button id="copy-url" class="hidden btn-secondary">
+          <i class="fas fa-link"></i> Copy URL
+        </button>
+        <button id="download-report" class="hidden btn-secondary">
+          <i class="fas fa-download"></i> Save Report
+        </button>
       </div>
-      <div class="glassmorphism p-4 mb-4">
-        <h3 class="text-lg font-medium">Detailed Analysis</h3>
-        <p id="detailed-analysis"></p>
+      
+      <!-- Analysis Cards -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        
+        <!-- Detailed Analysis -->
+        <div class="card p-6 animate-fadeIn" style="animation-delay: 0.2s;">
+          <div class="section-title">
+            <i class="fas fa-brain"></i>
+            <span>AI Analysis</span>
+          </div>
+          <p id="detailed-analysis" style="color: var(--text-secondary); line-height: 1.6;"></p>
+        </div>
+        
+        <!-- Improvement Areas -->
+        <div class="card p-6 animate-fadeIn" style="animation-delay: 0.3s;">
+          <div class="section-title">
+            <i class="fas fa-lightbulb"></i>
+            <span>Improvement Areas</span>
+          </div>
+          <ul id="improvement-areas" class="list-disc list-inside space-y-2" style="color: var(--text-secondary);"></ul>
+        </div>
       </div>
-      <div class="glassmorphism p-4 mb-4">
-        <h3 class="text-lg font-medium">Improvement Areas</h3>
-        <ul id="improvement-areas" class="list-disc list-inside"></ul>
+      
+      <!-- Developer Type & Tag -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        
+        <!-- Developer Type -->
+        <div class="card p-6 animate-fadeIn" style="animation-delay: 0.4s;">
+          <div class="section-title">
+            <i class="fas fa-code"></i>
+            <span>Developer Type</span>
+          </div>
+          <p id="developer-type" class="text-lg font-semibold" style="color: var(--accent-primary);"></p>
+        </div>
+        
+        <!-- Tag -->
+        <div class="card p-6 animate-fadeIn" style="animation-delay: 0.5s;">
+          <div class="section-title">
+            <i class="fas fa-tag"></i>
+            <span>Profile Tag</span>
+          </div>
+          <div id="tag-section" style="display: none;"></div>
+        </div>
       </div>
-      <div class="glassmorphism p-4 mb-4">
-        <h3 class="text-lg font-medium">Diagnostics</h3>
-        <ul id="diagnostics" class="list-disc list-inside"></ul>
+      
+      <!-- Diagnostics -->
+      <div class="card p-6 mb-6 animate-fadeIn" style="animation-delay: 0.6s;">
+        <div class="section-title">
+          <i class="fas fa-stethoscope"></i>
+          <span>Diagnostics</span>
+        </div>
+        <ul id="diagnostics" class="list-disc list-inside space-y-2" style="color: var(--text-secondary);"></ul>
       </div>
-      <!-- Project Ideas Section -->
-      <div class="glassmorphism p-4 mb-4">
-        <h3 class="text-lg font-medium">Project Ideas</h3>
+      
+      <!-- Project Ideas -->
+      <div class="card p-6 mb-6 animate-fadeIn" style="animation-delay: 0.7s;">
+        <div class="section-title">
+          <i class="fas fa-rocket"></i>
+          <span>Project Ideas</span>
+        </div>
         <div id="project-ideas-list"></div>
       </div>
-      <!-- Developer Type Section -->
-      <div class="glassmorphism p-4 mb-4">
-        <h3 class="text-lg font-medium">Developer Type</h3>
-        <p id="developer-type"></p>
+      
+      <!-- Badges -->
+      <div class="card p-6 mb-6 animate-fadeIn" style="animation-delay: 0.8s;">
+        <div class="section-title">
+          <i class="fas fa-medal"></i>
+          <span>GitHub Achievements</span>
+        </div>
+        <div id="badges" class="flex flex-wrap gap-3"></div>
       </div>
-      <!-- Tag Section -->
-      <div class="glassmorphism p-4 mb-4">
-        <h3 class="text-lg font-medium">Tag</h3>
-        <div id="tag-section" style="display:none;"></div>
+      
+      <!-- Stats & Graphs -->
+      <div class="card p-6 mb-6 animate-fadeIn" style="animation-delay: 0.9s;">
+        <div class="section-title">
+          <i class="fas fa-chart-bar"></i>
+          <span>Statistics & Graphs</span>
+        </div>
+        <div id="graphs" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+          <img id="stats-graph" class="w-full rounded-lg" alt="stats graph" />
+          <img id="langs-graph" class="w-full rounded-lg" alt="languages graph" />
+          <img id="streak-graph-daily" class="w-full rounded-lg" alt="daily streak graph" />
+          <img id="streak-graph-weekly" class="w-full rounded-lg" alt="weekly streak graph" />
+          <img id="trophy-graph" class="w-full rounded-lg md:col-span-2" alt="trophy graph" />
+          <img id="activity-graph" class="w-full rounded-lg md:col-span-2" alt="activity graph" />
+        </div>
       </div>
-      <div class="glassmorphism p-4 mb-4">
-        <h3 class="text-lg font-medium">Badges</h3>
-        <div id="badges" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div class="mb-6 glassmorphism p-4 animate-slideIn">
-      <h3 class="text-lg font-medium">Stats</h3>
-      <div id="graphs" class="mt-6 flex flex-wrap gap-4 justify-center hidden animate-slideIn">
-        <img id="stats-graph" height="150" alt="stats graph" />
-        <img id="langs-graph" height="150" alt="languages graph" />
-        <img id="streak-graph-daily" height="150" alt="daily streak graph" />
-        <img id="streak-graph-weekly" height="150" alt="weekly streak graph" />
-        <img id="trophy-graph" height="150" alt="trophy graph" />
-        <img id="activity-graph" height="300" alt="activity graph" />
-      </div>
-      </div>
+      
     </div>
   </div>
+  
+  <!-- Popup -->
   <div id="popup-overlay" class="popup-overlay hidden"></div>
   <div id="popup" class="popup hidden">
-    <button id="popup-close" class="absolute top-2 right-2 text-white">✖</button>
-    <p id="popup-message" class="mb-4"></p>
-    <a id="star-button" href="https://github.com/0xarchit/github-profile-analyzer" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded hidden">Star Now</a>
+    <button id="popup-close" class="absolute top-4 right-4 text-2xl" style="color: var(--text-primary);">
+      <i class="fas fa-times"></i>
+    </button>
+    <p id="popup-message" class="mb-6" style="color: var(--text-primary);"></p>
+    <div id="popup-input-container" class="hidden mb-4">
+      <input id="popup-input" type="text" readonly class="w-full mb-4" style="cursor: text;" />
+    </div>
+    <div id="popup-buttons" class="flex gap-3 justify-center">
+      <a id="star-button" href="https://github.com/0xarchit/github-profile-analyzer" target="_blank" class="btn-primary inline-block hidden">
+        <i class="fas fa-star"></i> Star Now
+      </a>
+      <button id="popup-copy-button" class="btn-primary hidden">
+        <i class="fas fa-copy"></i> Copy
+      </button>
+      <button id="popup-cancel-button" class="btn-secondary hidden">
+        <i class="fas fa-times"></i> Cancel
+      </button>
+    </div>
   </div>
   <script>
+    
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      updateThemeIcon(savedTheme);
+    }
+    
+    function updateThemeIcon(theme) {
+      const icon = document.getElementById('theme-icon');
+      icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+    
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateThemeIcon(newTheme);
+    }
+    
+    
+    initTheme();
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    
     const elements = {
       username: document.getElementById('username'),
       result: document.getElementById('result'),
@@ -662,6 +1336,9 @@ function getFrontendHTML() {
       analyze: document.getElementById('analyze'),
       popupClose: document.getElementById('popup-close'),
       loading: document.getElementById('loading'),
+      loadingStatus: document.getElementById('loading-status'),
+      loadingSubstatus: document.getElementById('loading-substatus'),
+      loadingProgress: document.getElementById('loading-progress'),
       copyUrl: document.getElementById('copy-url'),
       downloadReport: document.getElementById('download-report'),
       profileCard: document.getElementById('profile-card'),
@@ -678,18 +1355,32 @@ function getFrontendHTML() {
       profileOriginalRepos: document.getElementById('profile-original-repos'),
       profileAuthoredForks: document.getElementById('profile-authored-forks'),
       profileBadges: document.getElementById('profile-badges'),
-      badges: document.getElementById('badges')
+      badges: document.getElementById('badges'),
+      popupInputContainer: document.getElementById('popup-input-container'),
+      popupInput: document.getElementById('popup-input'),
+      popupCopyButton: document.getElementById('popup-copy-button'),
+      popupCancelButton: document.getElementById('popup-cancel-button')
     };
+    
+    
+    function updateLoadingProgress(percent, status, substatus) {
+      elements.loadingProgress.style.width = percent + '%';
+      if (status) elements.loadingStatus.textContent = status;
+      if (substatus) elements.loadingSubstatus.textContent = substatus;
+    }
 
     elements.analyze.addEventListener('click', async function() {
       const username = elements.username.value.trim();
       if (!username) {
-        showPopup('Please enter a GitHub username', false);
+        showPopup('<i class="fas fa-exclamation-circle"></i> Please enter a GitHub username', false);
         return;
       }
 
       const cacheKey = 'analysis_' + username;
       elements.loading.classList.remove('hidden');
+      elements.result.classList.add('hidden');
+      updateLoadingProgress(10, 'Starting analysis...', 'Checking cache');
+      
       try {
         const cachedData = localStorage.getItem(cacheKey);
         if (cachedData) {
@@ -702,41 +1393,52 @@ function getFrontendHTML() {
           }
           if (parsedData && parsedData.data && parsedData.timestamp) {
             if (Date.now() - parsedData.timestamp < 3600000) {
-              elements.loading.classList.add('hidden');
-              displayResult(parsedData.data, username);
-              (async () => {
-                try {
-                  const resp = await fetch('/rate_limit');
-                  if (!resp.ok) return;
-                  const { rate } = await resp.json();
-                  document.getElementById('rl-total').textContent = rate.limit;
-                  document.getElementById('rl-used').textContent = rate.used;
-                  document.getElementById('rl-remaining').textContent = rate.remaining;
-                } catch (e) {
-                  console.error('Rate limit refresh error', e);
-                }
-              })();
+              updateLoadingProgress(100, 'Loading cached results...', 'Done!');
+              setTimeout(() => {
+                elements.loading.classList.add('hidden');
+                displayResult(parsedData.data, username);
+                refreshRateLimit();
+              }, 500);
               return;
             }
           }
         }
       } catch (e) {
         console.error('LocalStorage error:', e);
+        updateLoadingProgress(0, 'Error', 'Cache error');
         elements.loading.classList.add('hidden');
-        showPopup('Error accessing local storage', false);
+        showPopup('<i class="fas fa-exclamation-triangle"></i> Error accessing local storage', false);
         return;
       }
 
-      elements.result.classList.add('hidden');
-      elements.graphs.classList.add('hidden');
+      updateLoadingProgress(20, 'Fetching profile data...', 'Connecting to GitHub');
+      
       try {
         const response = await fetch('/api?username=' + encodeURIComponent(username));
+        updateLoadingProgress(40, 'Processing data...', 'Analyzing repositories');
+        
+        
+        const progressInterval = setInterval(() => {
+          const currentWidth = parseFloat(elements.loadingProgress.style.width) || 40;
+          if (currentWidth < 80) {
+            updateLoadingProgress(currentWidth + 5, null, null);
+          }
+        }, 800);
+        
         const data = await response.json();
-        elements.loading.classList.add('hidden');
+        clearInterval(progressInterval);
+        
+        updateLoadingProgress(90, 'Finalizing analysis...', 'Almost done!');
+        
+        setTimeout(() => {
+          elements.loading.classList.add('hidden');
+        }, 500);
+        
         if (response.status !== 200) {
-          showPopup(data.error || 'An error occurred', data.showPopup || false);
+          showPopup('<i class="fas fa-exclamation-triangle"></i> ' + (data.error || 'An error occurred'), data.showPopup || false);
           return;
         }
+        
         try {
           localStorage.setItem(cacheKey, JSON.stringify({
             data: data,
@@ -745,96 +1447,90 @@ function getFrontendHTML() {
         } catch (e) {
           console.error('Failed to save to localStorage:', e);
         }
+        
         displayResult(data, username);
-        (async () => {
-          try {
-            const resp = await fetch('/rate_limit');
-            if (!resp.ok) return;
-            const { rate } = await resp.json();
-            document.getElementById('rl-total').textContent = rate.limit;
-            document.getElementById('rl-used').textContent = rate.used;
-            document.getElementById('rl-remaining').textContent = rate.remaining;
-          } catch (e) {
-            console.error('Rate limit refresh error', e);
-          }
-        })();
+        refreshRateLimit();
       } catch (error) {
         elements.loading.classList.add('hidden');
-        showPopup('Error fetching analysis', false);
+        showPopup('<i class="fas fa-exclamation-triangle"></i> Error fetching analysis', false);
+      }
+    });
+    
+    
+    elements.username.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        elements.analyze.click();
       }
     });
 
     function displayResult(data, username) {
       elements.result.classList.remove('hidden');
       elements.graphs.classList.remove('hidden');
+      
+      
+      setTimeout(() => {
+        elements.result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      
+      
       if (data && data.username) {
         elements.profileCard.style.display = '';
+        elements.profileCard.classList.remove('hidden');
         elements.profileAvatar.src = data.avatar || data.avatar_url || '';
         elements.profileContrib.style.backgroundImage = "url('/contributions?username=" + username + "')";
-        elements.profileCard.style.backgroundSize = 'cover';
         elements.profileUsername.textContent = data.username || '';
         elements.profileName.textContent = data.name || '';
-        elements.profileBio.textContent = data.bio || '';
-        elements.profileEmail.textContent = data.email ? 'Email: ' + data.email : '';
-        elements.profileCompany.textContent = data.company ? 'Company: ' + data.company : '';
+        elements.profileBio.textContent = data.bio || 'No bio available';
+        elements.profileEmail.innerHTML = data.email ? '<i class="fas fa-envelope"></i> ' + data.email : '';
+        elements.profileCompany.innerHTML = data.company ? '<i class="fas fa-building"></i> ' + data.company : '';
         elements.profileFollowers.textContent = data.followers || '0';
         elements.profileFollowing.textContent = data.following || '0';
         elements.profileRepos.textContent = data.public_repo_count || '0';
         elements.profileOriginalRepos.textContent = data.original_repos ? Object.keys(data.original_repos).length : '0';
         elements.profileAuthoredForks.textContent = data.authored_forks ? Object.keys(data.authored_forks).length : '0';
+        
+        
         elements.profileBadges.innerHTML = '';
-        Object.keys(data.badges || {}).forEach(slug => {
+        const badgeKeys = Object.keys(data.badges || {}).slice(0, 6);
+        badgeKeys.forEach(slug => {
           const img = document.createElement('img');
           img.src = data.badges[slug];
           img.alt = slug;
-          img.className = 'w-8 h-8 rounded-full';
+          img.className = 'badge-item';
+          img.title = slug.replace(/-/g, ' ').toUpperCase();
           elements.profileBadges.appendChild(img);
         });
       } else {
         elements.profileCard.style.display = 'none';
       }
+      
+      
       const score = data.score || 0;
-      elements.scoreText.textContent = score + '/100';
-      elements.scoreProgress.setAttribute('data-percentage', score);
-      const progressBar = elements.scoreProgress;
-      const progressValue = elements.scoreText;
-      const innerCircle = progressBar.querySelector('.inner-circle');
-      let startValue = 0;
-      const endValue = score;
-      const speed = 50;
-      const progressColor = progressBar.getAttribute('data-progress-color');
-      const progress = setInterval(function() {
-        startValue++;
-        progressValue.textContent = startValue + '/100';
-        progressValue.style.color = progressColor;
-        innerCircle.style.backgroundColor = progressBar.getAttribute('data-inner-circle-color');
-        progressBar.style.background = 'conic-gradient(' + progressColor + ' ' + (startValue * 3.6) + 'deg,' + progressBar.getAttribute('data-bg-color') + ' 0deg)';
-        if (startValue >= endValue) {
-          clearInterval(progress);
-        }
-      }, speed);
+      animateScore(score);
+      
+      
       elements.detailedAnalysis.textContent = data.detailed_analysis || 'No analysis provided';
+      
+      
       elements.improvementAreas.innerHTML = '';
       (data.improvement_areas || []).forEach(function(item) {
         const li = document.createElement('li');
-        li.textContent = item;
+        li.innerHTML = '<i class="fas fa-arrow-right" style="color: var(--accent-primary); margin-right: 8px;"></i>' + item;
         elements.improvementAreas.appendChild(li);
       });
+      
+      
       elements.diagnostics.innerHTML = '';
       (data.diagnostics || []).forEach(function(item) {
         const li = document.createElement('li');
-        li.textContent = item;
+        li.innerHTML = '<i class="fas fa-check-circle" style="color: var(--accent-secondary); margin-right: 8px;"></i>' + item;
         elements.diagnostics.appendChild(li);
       });
-      elements.projectIdeasList.innerHTML = '';
-      (data.project_ideas ? Object.values(data.project_ideas) : []).forEach(idea => {
-        const div = document.createElement('div');
-        div.className = 'mb-2';
-        const techs = idea.tech_stack || idea['tech stack'] || [];
-        div.innerHTML = '<strong>' + idea.title + '</strong><p>' + idea.description + '</p><p><em>Tech Stack:</em> ' + techs.join(', ') + '</p>';
-        elements.projectIdeasList.appendChild(div);
-      });
-      elements.developerType.textContent = data.developer_type || '';
+      
+      
+      elements.developerType.innerHTML = '<i class="fas fa-laptop-code"></i> ' + (data.developer_type || 'Developer');
+      
+      
       if (data.tag) {
         let name = '', desc = '';
         if (data.tag.tag_name && data.tag.description) {
@@ -847,69 +1543,154 @@ function getFrontendHTML() {
             desc = data.tag[name] || '';
           }
         }
-        elements.tagSection.innerHTML = '<strong>' + name + '</strong>: ' + desc;
+        elements.tagSection.innerHTML = '<div class="tag-badge"><i class="fas fa-award"></i><div><strong>' + name + '</strong><br><small>' + desc + '</small></div></div>';
         elements.tagSection.style.display = name ? '' : 'none';
       } else {
         elements.tagSection.style.display = 'none';
       }
+      
+      
+      elements.projectIdeasList.innerHTML = '';
+      (data.project_ideas ? Object.values(data.project_ideas) : []).forEach(idea => {
+        const techs = idea.tech_stack || idea['tech stack'] || [];
+        const div = document.createElement('div');
+        div.className = 'project-card';
+        div.innerHTML = '<h4 class="font-bold text-lg mb-2" style="color: var(--accent-primary);"><i class="fas fa-lightbulb"></i> ' + idea.title + '</h4><p style="color: var(--text-secondary); margin-bottom: 12px;">' + idea.description + '</p><div class="tech-stack">' + techs.map(t => '<span class="tech-tag">' + t + '</span>').join('') + '</div>';
+        elements.projectIdeasList.appendChild(div);
+      });
+      
+      
       elements.badges.innerHTML = '';
       const badges = data.badges || {};
       Object.keys(badges).forEach(function(slug) {
-        const img = document.createElement('img');
-        img.src = badges[slug];
-        img.alt = slug;
-        img.className = 'w-12 h-12 rounded-full';
-        elements.badges.appendChild(img);
+        const div = document.createElement('div');
+        div.className = 'text-center';
+        div.innerHTML = '<img src="' + badges[slug] + '" alt="' + slug + '" class="w-16 h-16 rounded-full border-2 hover:scale-110 transition-transform cursor-pointer" style="border-color: var(--border-color);" title="' + slug.replace(/-/g, ' ').toUpperCase() + '" /><p class="text-xs mt-1" style="color: var(--text-tertiary);">' + slug.replace(/-/g, ' ') + '</p>';
+        elements.badges.appendChild(div);
       });
-      elements.statsGraph.src = 'https://github-readme-stats.vercel.app/api?username=' + encodeURIComponent(username) + '&hide_title=false&hide_rank=false&show_icons=true&include_all_commits=true&count_private=true&disable_animations=false&theme=transparent&locale=en&hide_border=false&order=1';
-      elements.langsGraph.src = 'https://github-readme-stats.vercel.app/api/top-langs?username=' + encodeURIComponent(username) + '&locale=en&hide_title=false&layout=compact&card_width=320&langs_count=5&theme=transparent&hide_border=false&order=2';
-      elements.streakGraphDaily.src = 'https://streak-stats.demolab.com?user=' + encodeURIComponent(username) + '&locale=en&mode=daily&theme=transparent&hide_border=false&border_radius=5&order=3';
-      elements.streakGraphWeekly.src = 'https://streak-stats.demolab.com?user=' + encodeURIComponent(username) + '&locale=en&mode=weekly&theme=transparent&hide_border=false&border_radius=5&order=4';
-      elements.trophyGraph.src = 'https://github-profile-trophy.vercel.app?username=' + encodeURIComponent(username) + '&no-bg=true&column=-1&row=1&margin-w=8&margin-h=8&no-frame=false&order=5';
-      elements.activityGraph.src = 'https://github-readme-activity-graph.vercel.app/graph?username=' + encodeURIComponent(username) + '&bg_color=ffffff00&color=006aff&line=006aff&point=ffffff&area=true&hide_border=false';
+      
+      
+      const theme = document.documentElement.getAttribute('data-theme');
+      const graphTheme = theme === 'dark' ? 'dark' : 'default';
+      
+      elements.statsGraph.src = 'https://github-readme-stats.vercel.app/api?username=' + encodeURIComponent(username) + '&hide_title=false&hide_rank=false&show_icons=true&include_all_commits=true&count_private=true&disable_animations=false&theme=' + graphTheme + '&locale=en&hide_border=false&order=1';
+      elements.langsGraph.src = 'https://github-readme-stats.vercel.app/api/top-langs?username=' + encodeURIComponent(username) + '&locale=en&hide_title=false&layout=compact&card_width=320&langs_count=5&theme=' + graphTheme + '&hide_border=false&order=2';
+      elements.streakGraphDaily.src = 'https://streak-stats.demolab.com?user=' + encodeURIComponent(username) + '&locale=en&mode=daily&theme=' + graphTheme + '&hide_border=false&border_radius=5&order=3';
+      elements.streakGraphWeekly.src = 'https://streak-stats.demolab.com?user=' + encodeURIComponent(username) + '&locale=en&mode=weekly&theme=' + graphTheme + '&hide_border=false&border_radius=5&order=4';
+      elements.trophyGraph.src = 'https://github-profile-trophy.vercel.app?username=' + encodeURIComponent(username) + '&theme=' + graphTheme + '&column=-1&row=1&margin-w=8&margin-h=8&no-frame=false&order=5';
+      elements.activityGraph.src = 'https://github-readme-activity-graph.vercel.app/graph?username=' + encodeURIComponent(username) + '&bg_color=' + (theme === 'dark' ? '0f172a' : 'ffffff') + '&color=' + (theme === 'dark' ? 'f8fafc' : '0f172a') + '&line=3b82f6&point=3b82f6&area=true&hide_border=false';
+      
+      
       elements.copyUrl.classList.remove('hidden');
       elements.copyUrl.onclick = function() {
         const permanentUrl = window.location.origin + '/?username=' + encodeURIComponent(username);
-        navigator.clipboard.writeText(permanentUrl).then(() => {
-          showPopup('Profile URL copied to clipboard', false);
-          setTimeout(() => {
-            elements.popup.classList.add('hidden');
-            elements.popupOverlay.classList.add('hidden');
-          }, 3000);
-        });
+        showPopup('<i class="fas fa-link"></i> Profile URL', false, permanentUrl, 'copy');
       };
+      
       elements.downloadReport.classList.remove('hidden');
       elements.downloadReport.onclick = async () => {
-        showPopup('Your report is rendering for download; this is a beta feature and may be unstable.', false);
-        setTimeout(() => {
-          elements.popup.classList.add('hidden');
-          elements.popupOverlay.classList.add('hidden');
-        }, 5000);
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        try {
-          window.print();
-        } catch (err) {
-          console.error('Print error', err);
-          showPopup('Failed to print report', false);
+        showPopup('<i class="fas fa-hourglass-half"></i> Saving report...', false, null, 'download');
+        
+        let downloadCancelled = false;
+        elements.popupCancelButton.onclick = () => {
+          downloadCancelled = true;
+          closePopup();
+        };
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        if (!downloadCancelled) {
+          closePopup();
+          try {
+            window.print();
+          } catch (err) {
+            console.error('Print error', err);
+            showPopup('<i class="fas fa-exclamation-triangle"></i> Failed to print report', false);
+          }
         }
       };
     }
+    
+    function animateScore(targetScore) {
+      const progressBar = elements.scoreProgress;
+      const progressValue = elements.scoreText;
+      const innerCircle = progressBar.querySelector('.inner-circle');
+      let startValue = 0;
+      const speed = 30;
+      const progressColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim();
+      const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
+      
+      const progress = setInterval(function() {
+        startValue++;
+        progressValue.textContent = startValue + '/100';
+        progressBar.style.background = 'conic-gradient(' + progressColor + ' ' + (startValue * 3.6) + 'deg, ' + bgColor + ' 0deg)';
+        
+        if (startValue >= targetScore) {
+          clearInterval(progress);
+        }
+      }, speed);
+    }
 
-    function showPopup(message, showStarButton) {
+    function showPopup(message, showStarButton, inputValue = null, popupType = 'default') {
+      
+      elements.starButton.classList.add('hidden');
+      elements.popupCopyButton.classList.add('hidden');
+      elements.popupCancelButton.classList.add('hidden');
+      elements.popupInputContainer.classList.add('hidden');
+      
+      
       elements.popupMessage.innerHTML = message.includes('starred')
-        ? 'Please star the <a href="https://github.com/0xarchit/github-profile-analyzer" target="_blank" class="text-blue-400 underline">0xarchit/github-profile-analyzer</a> repository to proceed. This is important to avoid false users'
+        ? 'Please star the <a href="https://github.com/0xarchit/github-profile-analyzer" target="_blank" class="underline" style="color: var(--accent-primary);">0xarchit/github-profile-analyzer</a> repository to proceed. This helps us prevent abuse!'
         : message;
+      
+      
+      if (popupType === 'copy' && inputValue) {
+        
+        elements.popupInputContainer.classList.remove('hidden');
+        elements.popupInput.value = inputValue;
+        elements.popupCopyButton.classList.remove('hidden');
+        
+        
+        elements.popupCopyButton.onclick = () => {
+          navigator.clipboard.writeText(inputValue).then(() => {
+            elements.popupMessage.innerHTML = '<i class="fas fa-check-circle"></i> URL copied to clipboard!';
+            setTimeout(() => {
+              closePopup();
+            }, 1500);
+          });
+        };
+      } else if (popupType === 'download') {
+        
+        elements.popupCancelButton.classList.remove('hidden');
+      } else if (showStarButton) {
+        
+        elements.starButton.classList.remove('hidden');
+      }
+      
+      
       elements.popup.classList.remove('hidden');
       elements.popupOverlay.classList.remove('hidden');
-      elements.starButton.classList.toggle('hidden', !showStarButton);
+    }
+    
+    function closePopup() {
+      elements.popup.classList.add('hidden');
+      elements.popupOverlay.classList.add('hidden');
+      elements.popupInputContainer.classList.add('hidden');
+      elements.starButton.classList.add('hidden');
+      elements.popupCopyButton.classList.add('hidden');
+      elements.popupCancelButton.classList.add('hidden');
     }
 
     elements.popupClose.addEventListener('click', function() {
-      elements.popup.classList.add('hidden');
-      elements.popupOverlay.classList.add('hidden');
+      closePopup();
+    });
+    
+    elements.popupOverlay.addEventListener('click', function() {
+      closePopup();
     });
 
-      window.addEventListener('DOMContentLoaded', () => {
+    
+    window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const initialUsername = urlParams.get('username');
       if (initialUsername) {
@@ -917,14 +1698,32 @@ function getFrontendHTML() {
         elements.analyze.click();
       }
     });
+    
+    
+    async function refreshRateLimit() {
+      try {
+        const resp = await fetch('/rate_limit');
+        if (!resp.ok) return;
+        const { rate } = await resp.json();
+        document.getElementById('rl-total').textContent = rate.limit;
+        document.getElementById('rl-used').textContent = rate.used;
+        document.getElementById('rl-remaining').textContent = rate.remaining;
+      } catch (e) {
+        console.error('Rate limit refresh error', e);
+      }
+    }
+    
+    
     document.addEventListener('DOMContentLoaded', function() {
       const widget = document.getElementById('rate-limit-widget');
       let isDragging = false, offsetX = 0, offsetY = 0;
+      
       widget.addEventListener('mousedown', function(e) {
         isDragging = true;
         offsetX = e.clientX - widget.offsetLeft;
         offsetY = e.clientY - widget.offsetTop;
       });
+      
       widget.addEventListener('touchstart', function(e) {
         e.preventDefault();
         isDragging = true;
@@ -932,12 +1731,14 @@ function getFrontendHTML() {
         offsetX = touch.clientX - widget.offsetLeft;
         offsetY = touch.clientY - widget.offsetTop;
       });
+      
       document.addEventListener('mousemove', function(e) {
         if (isDragging) {
           widget.style.left = (e.clientX - offsetX) + 'px';
           widget.style.top = (e.clientY - offsetY) + 'px';
         }
       });
+      
       document.addEventListener('touchmove', function(e) {
         if (isDragging) {
           e.preventDefault();
@@ -946,29 +1747,20 @@ function getFrontendHTML() {
           widget.style.top = (touch.clientY - offsetY) + 'px';
         }
       }, { passive: false });
+      
       document.addEventListener('mouseup', function() {
         isDragging = false;
       });
+      
       document.addEventListener('touchend', function() {
         isDragging = false;
       });
-      async function fetchRateLimit() {
-        try {
-          const res = await fetch('/rate_limit');
-          if (!res.ok) return;
-          const rate = (await res.json()).rate;
-          document.getElementById('rl-total').textContent = rate.limit;
-          document.getElementById('rl-used').textContent = rate.used;
-          document.getElementById('rl-remaining').textContent = rate.remaining;
-        } catch (err) {
-          console.error('Rate limit fetch error', err);
-        }
-      }
-      fetchRateLimit();
+      
+      refreshRateLimit();
     });
   </script>
-  <footer class="fixed bottom-0 w-full text-center p-2 bg-gray-800 text-white">
-    © <a href="https://github.com/0xarchit" class="underline">0xarchit</a> 2025
+  <footer class="fixed bottom-0 w-full text-center p-3" style="background: var(--glass-bg); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color);">
+    <span style="color: var(--text-secondary);">© <a href="https://github.com/0xarchit/github-profile-analyzer/blob/main/LICENSE" class="underline" style="color: var(--accent-primary);">0xarchit</a> 2025</span>
   </footer>
 </body>
 </html>`;
