@@ -442,7 +442,7 @@ async function handleRequest(request) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-4-scout-17b-16e-instruct",
+          model: "gpt-oss-120b",
           messages: [
             {
               role: "system",
@@ -503,7 +503,8 @@ async function handleRequest(request) {
               - Use a constructive, analytic tone; never generic or repetitive.
               - Never invent data — base insights strictly on provided GitHub data.
               - Always return valid, complete JSON — no text outside JSON.
-              - Project ideas should be new non repeative to exsisting on profile.`,
+              - Project ideas should be new non repeative to exsisting on profile.
+              `,
             },
             {
               role: "user",
@@ -1019,7 +1020,7 @@ function getFrontendHTML() {
       }
     }
     
-    /* Scrollbar styling */
+    
     ::-webkit-scrollbar {
       width: 10px;
       height: 10px;
@@ -1039,7 +1040,7 @@ function getFrontendHTML() {
       background: var(--accent-hover);
     }
     
-    /* Gradient text */
+    
     .gradient-text {
       background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
       -webkit-background-clip: text;
@@ -1047,7 +1048,7 @@ function getFrontendHTML() {
       background-clip: text;
     }
     
-    /* Shimmer loading effect */
+    
     @keyframes shimmer {
       0% {
         background-position: -1000px 0;
@@ -1062,6 +1063,9 @@ function getFrontendHTML() {
       background-size: 1000px 100%;
       animation: shimmer 2s infinite;
     }
+
+    
+    .hidden { display: none !important; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-4 pb-20">
@@ -1298,7 +1302,7 @@ function getFrontendHTML() {
       <input id="popup-input" type="text" readonly class="w-full mb-4" style="cursor: text;" />
     </div>
     <div id="popup-buttons" class="flex gap-3 justify-center">
-      <a id="star-button" href="https://github.com/0xarchit/github-profile-analyzer" target="_blank" class="btn-primary inline-block hidden">
+      <a id="star-button" href="https://github.com/0xarchit/github-profile-analyzer" target="_blank" class="btn-primary hidden">
         <i class="fas fa-star"></i> Star Now
       </a>
       <button id="popup-copy-button" class="btn-primary hidden">
@@ -1657,6 +1661,7 @@ function getFrontendHTML() {
     function showPopup(message, showStarButton, inputValue = null, popupType = 'default') {
       
       elements.starButton.classList.add('hidden');
+      elements.starButton.style.display = 'none';
       elements.popupCopyButton.classList.add('hidden');
       elements.popupCancelButton.classList.add('hidden');
       elements.popupInputContainer.classList.add('hidden');
@@ -1666,12 +1671,15 @@ function getFrontendHTML() {
         ? 'Please star the <a href="https://github.com/0xarchit/github-profile-analyzer" target="_blank" class="underline" style="color: var(--accent-primary);">0xarchit/github-profile-analyzer</a> repository to proceed. This helps us prevent abuse!'
         : message;
       
+      const finalShowStarButton = (popupType === 'copy' || popupType === 'download') ? false : !!showStarButton;
       
       if (popupType === 'copy' && inputValue) {
         
         elements.popupInputContainer.classList.remove('hidden');
         elements.popupInput.value = inputValue;
         elements.popupCopyButton.classList.remove('hidden');
+        elements.starButton.classList.add('hidden');
+        elements.starButton.style.display = 'none';
         
         
         elements.popupCopyButton.onclick = () => {
@@ -1685,9 +1693,14 @@ function getFrontendHTML() {
       } else if (popupType === 'download') {
         
         elements.popupCancelButton.classList.remove('hidden');
-      } else if (showStarButton) {
+        
+        elements.starButton.classList.add('hidden');
+        elements.starButton.style.display = 'none';
+      } else if (finalShowStarButton) {
         
         elements.starButton.classList.remove('hidden');
+        
+        elements.starButton.style.display = 'inline-block';
       }
       
       
@@ -1700,6 +1713,7 @@ function getFrontendHTML() {
       elements.popupOverlay.classList.add('hidden');
       elements.popupInputContainer.classList.add('hidden');
       elements.starButton.classList.add('hidden');
+      elements.starButton.style.display = 'none';
       elements.popupCopyButton.classList.add('hidden');
       elements.popupCancelButton.classList.add('hidden');
     }
