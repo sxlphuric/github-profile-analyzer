@@ -1,0 +1,5 @@
+{
+  "name": "github-profile-analyzer",
+  "compatibility_date": "2026-01-17",
+  "main": "worker.js"
+}
